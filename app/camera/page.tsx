@@ -1,13 +1,58 @@
-import Script from "next/script";
+"use client";
+
+import * as tf from "@tensorflow/tfjs";
+import * as tmImage from "@teachablemachine/image";
+import Webcam from "react-webcam";
+import { useEffect, useRef, useState } from "react";
 
 export default function Camera() {
-  return (
-    <>
-      <Script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></Script>
-      <Script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></Script>
+  //const [model, setModel] = useState<tmImage.CustomMobileNet | null>(null);
+  const webcamRef = useRef<Webcam>(null);
+  const videoConstraints = {
+    width: 1920,
+    height: 1080,
+    facingMode: "environment",
+  };
 
-      <main className="max-w-lg mx-auto"></main>
-    </>
+  async function setup() {
+    const modelURL = "/image-model/model.json";
+    const metadataURL = "/image-model/metadata.json";
+
+    const model = await tmImage.load(modelURL, metadataURL);
+    predict(model);
+    const maxPredictions = model.getTotalClasses();
+  }
+
+  async function predict(model: tmImage.CustomMobileNet) {
+    console.log("predicting");
+
+    if (webcamRef.current) {
+      const webcamCurrent = webcamRef.current as any;
+      console.log(webcamCurrent.video.readyState);
+
+      if (webcamCurrent.video.readyState === 4) {
+        const prediction = await model.predict(webcamCurrent.video);
+        console.log(prediction);
+      }
+    }
+  }
+
+  useEffect(() => {
+    setup();
+  }, []);
+
+  return (
+    <main className="max-w-lg mx-auto">
+      <Webcam
+        audio={false}
+        id="img"
+        ref={webcamRef}
+        height={720}
+        screenshotFormat="image/jpeg"
+        width={1280}
+        videoConstraints={videoConstraints}
+      />
+    </main>
   );
 }
 {
