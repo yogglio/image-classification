@@ -39,13 +39,13 @@ export default function Camera() {
   }
 
   async function loop() {
-    const classPrediction = await predict();
-    if (classPrediction) {
-      setCurrentPrediction(classPrediction);
+    const prediction = await predict();
+    if (prediction) {
+      setCurrentPrediction(prediction);
     }
-    if (classPrediction && classPrediction.probability > 0.98) {
+    if (prediction && prediction.probability > 0.98) {
       const imageRoute =
-        ImageMapping[classPrediction?.className as keyof typeof ImageMapping];
+        ImageMapping[prediction?.className as keyof typeof ImageMapping];
       //console.log("cancelAnimationFrame", requestRef.current);
 
       cancelAnimationFrame(requestRef.current as number);
