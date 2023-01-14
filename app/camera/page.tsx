@@ -4,42 +4,89 @@ import * as tf from "@tensorflow/tfjs";
 import * as tmImage from "@teachablemachine/image";
 import Webcam from "react-webcam";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+
+const ImageMapping = {
+  "Pulp Fiction": "pulp-fiction",
+  "Blues Brothers": "blues-brothers",
+};
+
+type Prediction = {
+  className: string;
+  probability: number;
+};
 
 export default function Camera() {
-  //const [model, setModel] = useState<tmImage.CustomMobileNet | null>(null);
+  const [model, setModel] = useState<tmImage.CustomMobileNet>();
+  const requestRef = useRef<Number>();
   const webcamRef = useRef<Webcam>(null);
+  const [currentPrediction, setCurrentPrediction] = useState<Prediction>(
+    {} as Prediction
+  );
+  const router = useRouter();
   const videoConstraints = {
-    width: 1920,
-    height: 1080,
+    width: 200,
+    height: 200,
     facingMode: "environment",
   };
 
-  async function setup() {
+  async function init() {
     const modelURL = "/image-model/model.json";
     const metadataURL = "/image-model/metadata.json";
 
     const model = await tmImage.load(modelURL, metadataURL);
-    predict(model);
-    const maxPredictions = model.getTotalClasses();
+    setModel(model);
   }
 
-  async function predict(model: tmImage.CustomMobileNet) {
-    console.log("predicting");
+  async function loop() {
+    const classPrediction = await predict();
+    if (classPrediction) {
+      setCurrentPrediction(classPrediction);
+    }
+    if (classPrediction && classPrediction.probability > 0.98) {
+      const imageRoute =
+        ImageMapping[classPrediction?.className as keyof typeof ImageMapping];
+      //console.log("cancelAnimationFrame", requestRef.current);
 
+      cancelAnimationFrame(requestRef.current as number);
+      router.push(`/images/${imageRoute}`);
+    } else {
+      requestRef.current = requestAnimationFrame(loop);
+      //console.log("currentAnimationFrame", requestRef.current);
+    }
+  }
+
+  async function predict() {
     if (webcamRef.current) {
       const webcamCurrent = webcamRef.current as any;
-      console.log(webcamCurrent.video.readyState);
-
       if (webcamCurrent.video.readyState === 4) {
-        const prediction = await model.predict(webcamCurrent.video);
-        console.log(prediction);
+        const prediction = await model!.predict(webcamCurrent.video);
+
+        const classPrediction = prediction.reduce((prev, current) =>
+          prev.probability > current.probability ? prev : current
+        );
+
+        return classPrediction;
+
+        // console.log(
+        //   classPrediction.className +
+        //     ": " +
+        //     classPrediction.probability.toFixed(2)
+        // );
       }
     }
   }
 
   useEffect(() => {
-    setup();
+    init();
   }, []);
+
+  useEffect(() => {
+    if (model) {
+      console.log("start");
+      requestRef.current = requestAnimationFrame(loop);
+    }
+  }, [model]);
 
   return (
     <main className="max-w-lg mx-auto">
@@ -47,72 +94,16 @@ export default function Camera() {
         audio={false}
         id="img"
         ref={webcamRef}
-        height={720}
+        height={800}
         screenshotFormat="image/jpeg"
-        width={1280}
+        screenshotQuality={0.7}
+        width={640}
         videoConstraints={videoConstraints}
       />
+      <div className="flex flex-col items-center">
+        Current Prediction: {currentPrediction.className}{" "}
+        {currentPrediction.probability?.toFixed(2)}
+      </div>
     </main>
   );
-}
-{
-  /* <div>Teachable Machine Image Model</div>
-<button type="button" onclick="init()">Start</button>
-<div id="webcam-container"></div>
-<div id="label-container"></div>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
-<script type="text/javascript">
-    // More API functions here:
-    // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
-
-    // the link to your model provided by Teachable Machine export panel
-    const URL = "./my_model/";
-
-    let model, webcam, labelContainer, maxPredictions;
-
-    // Load the image model and setup the webcam
-    async function init() {
-        const modelURL = URL + "model.json";
-        const metadataURL = URL + "metadata.json";
-
-        // load the model and metadata
-        // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
-        // or files from your local hard drive
-        // Note: the pose library adds "tmImage" object to your window (window.tmImage)
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
-
-        // Convenience function to setup a webcam
-        const flip = true; // whether to flip the webcam
-        webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
-        await webcam.setup(); // request access to the webcam
-        await webcam.play();
-        window.requestAnimationFrame(loop);
-
-        // append elements to the DOM
-        document.getElementById("webcam-container").appendChild(webcam.canvas);
-        labelContainer = document.getElementById("label-container");
-        for (let i = 0; i < maxPredictions; i++) { // and class labels
-            labelContainer.appendChild(document.createElement("div"));
-        }
-    }
-
-    async function loop() {
-        webcam.update(); // update the webcam frame
-        await predict();
-        window.requestAnimationFrame(loop);
-    }
-
-    // run the webcam image through the image model
-    async function predict() {
-        // predict can take in an image, video or canvas html element
-        const prediction = await model.predict(webcam.canvas);
-        for (let i = 0; i < maxPredictions; i++) {
-            const classPrediction =
-                prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-            labelContainer.childNodes[i].innerHTML = classPrediction;
-        }
-    }
-</script> */
 }
