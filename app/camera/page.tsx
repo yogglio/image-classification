@@ -43,7 +43,7 @@ export default function Camera() {
     if (prediction) {
       setCurrentPrediction(prediction);
     }
-    if (prediction && prediction.probability > 0.98) {
+    if (prediction && prediction.probability > 0.99) {
       const imageRoute =
         ImageMapping[prediction?.className as keyof typeof ImageMapping];
       //console.log("cancelAnimationFrame", requestRef.current);
