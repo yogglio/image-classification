@@ -8,7 +8,7 @@ export default function PulpFiction() {
         width={400}
         height={400}
         alt="Pulp Fiction"
-        src="/images/pulp-fiction.webp"
+        src="/images/pulp-fiction.jpg"
       />
     </>
   );
