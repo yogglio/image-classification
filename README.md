@@ -2,7 +2,13 @@ This is an image classification project. The Model was trained with [Teachable M
 
 ## Getting Started
 
-First, run the development server:
+First install dependencies:
+
+```bash
+npm install
+```
+
+Then run the development server:
 
 ```bash
 npm run dev
